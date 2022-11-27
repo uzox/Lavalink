@@ -575,6 +575,7 @@ GET /v3/sessions/{sessionId}/players
 | title      | string  | The track title                    |
 | uri        | ?string | The track uri                      |
 | sourceName | string  | The track source name              |
+| ...        | ?       | Plugins may add additional fields  |
 
 ##### Voice State
 
@@ -1063,6 +1064,7 @@ Response:
 |----------------|--------|------------------------------------------------------------------|
 | name?          | string | The name of the loaded playlist                                  |
 | selectedTrack? | int    | The selected track in this Playlist (-1 if no track is selected) |
+| ...            | ?      | Plugins may add additional fields                                |
 
 <details>
 <summary>Track Loaded Example Payload</summary>

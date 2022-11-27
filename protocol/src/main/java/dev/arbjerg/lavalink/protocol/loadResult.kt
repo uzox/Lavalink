@@ -2,7 +2,6 @@ package dev.arbjerg.lavalink.protocol
 
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 
-
 data class LoadResult(
     val loadType: ResultStatus,
     val tracks: List<Track>,
@@ -18,13 +17,8 @@ data class LoadResult(
         loadResultType, tracks, playlistInfo, null
     )
 
-    constructor(exception: Exception?) : this(ResultStatus.LOAD_FAILED, emptyList(), null, exception)
+    constructor(exception: FriendlyException) : this(ResultStatus.LOAD_FAILED, emptyList(), null, Exception(exception))
 }
-
-data class PlaylistInfo(
-    val name: String,
-    val selectedTrack: Int
-)
 
 data class Exception(
     val message: String?,

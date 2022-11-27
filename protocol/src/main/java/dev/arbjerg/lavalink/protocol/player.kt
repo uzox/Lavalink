@@ -21,24 +21,6 @@ data class Player(
     val filters: Filters
 )
 
-data class Track(
-    val encoded: String,
-    val track: String,
-    val info: TrackInfo
-)
-
-data class TrackInfo(
-    val identifier: String,
-    val isSeekable: Boolean,
-    val author: String,
-    val length: Long,
-    val isStream: Boolean,
-    val position: Long,
-    val title: String,
-    val uri: String,
-    val sourceName: String
-)
-
 data class VoiceState(
     val token: String = "",
     val endpoint: String = "",

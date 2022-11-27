@@ -26,17 +26,21 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
-import dev.arbjerg.lavalink.protocol.Exception
-import dev.arbjerg.lavalink.protocol.LoadResult
-import dev.arbjerg.lavalink.protocol.PlaylistInfo
-import dev.arbjerg.lavalink.protocol.ResultStatus
+import dev.arbjerg.lavalink.api.AudioPlaylistJsonAppender
+import dev.arbjerg.lavalink.api.AudioTrackJsonAppender
+import dev.arbjerg.lavalink.protocol.*
+import lavalink.server.util.toPlaylistInfo
 import lavalink.server.util.toTrack
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionStage
 import java.util.concurrent.atomic.AtomicBoolean
 
-class AudioLoader(private val audioPlayerManager: AudioPlayerManager) : AudioLoadResultHandler {
+class AudioLoader(
+    private val audioPlayerManager: AudioPlayerManager,
+    private val trackModifiers: List<AudioTrackJsonAppender>,
+    private val playlistModifiers: List<AudioPlaylistJsonAppender>
+) : AudioLoadResultHandler {
 
     companion object {
         private val log = LoggerFactory.getLogger(AudioLoader::class.java)
@@ -56,29 +60,30 @@ class AudioLoader(private val audioPlayerManager: AudioPlayerManager) : AudioLoa
 
     override fun trackLoaded(audioTrack: AudioTrack) {
         log.info("Loaded track ${audioTrack.info.title}")
-        val tracks = listOf(audioTrack.toTrack(audioPlayerManager))
+
+        val tracks = listOf(audioTrack.toTrack(audioPlayerManager, trackModifiers))
         loadResult.complete(LoadResult(ResultStatus.TRACK_LOADED, tracks, null))
     }
 
     override fun playlistLoaded(audioPlaylist: AudioPlaylist) {
         log.info("Loaded playlist ${audioPlaylist.name}")
-        var playlistInfo: PlaylistInfo? = null
-        if (!audioPlaylist.isSearchResult) {
-            playlistInfo = PlaylistInfo(audioPlaylist.name, audioPlaylist.tracks.indexOf(audioPlaylist.selectedTrack))
-        }
+
         val status = if (audioPlaylist.isSearchResult) ResultStatus.SEARCH_RESULT else ResultStatus.PLAYLIST_LOADED
-        val tracks = audioPlaylist.tracks.map { it.toTrack(audioPlayerManager) }
+        val tracks = audioPlaylist.tracks.map { it.toTrack(audioPlayerManager, trackModifiers) }
+        val playlistInfo = if (audioPlaylist.isSearchResult) null else audioPlaylist.toPlaylistInfo(playlistModifiers)
         loadResult.complete(LoadResult(status, tracks, playlistInfo))
     }
 
     override fun noMatches() {
         log.info("No matches found")
+
         loadResult.complete(NO_MATCHES)
     }
 
     override fun loadFailed(e: FriendlyException) {
         log.error("Load failed", e)
-        loadResult.complete(LoadResult(Exception(e)))
+
+        loadResult.complete(LoadResult(e))
     }
 
 }

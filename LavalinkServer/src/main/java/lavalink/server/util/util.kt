@@ -21,8 +21,12 @@
  */
 package lavalink.server.util
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
+import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
+import dev.arbjerg.lavalink.api.AudioPlaylistJsonAppender
+import dev.arbjerg.lavalink.api.AudioTrackJsonAppender
 import dev.arbjerg.lavalink.protocol.*
 import lavalink.server.io.SocketContext
 import lavalink.server.io.SocketServer
@@ -30,36 +34,13 @@ import lavalink.server.player.LavalinkPlayer
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
-fun AudioTrack.toTrack(audioPlayerManager: AudioPlayerManager): Track {
-    val encoded = encodeTrack(audioPlayerManager, this)
-    return Track(encoded, encoded, this.toInfo())
-}
-
-fun AudioTrack.toTrack(encoded: String): Track {
-    return Track(encoded, encoded, this.toInfo())
-}
-
-fun AudioTrack.toInfo(): TrackInfo {
-    return TrackInfo(
-        this.identifier,
-        this.isSeekable,
-        this.info.author,
-        this.info.length,
-        this.info.isStream,
-        this.position,
-        this.info.title,
-        this.info.uri,
-        this.sourceManager.sourceName
-    )
-}
-
-fun LavalinkPlayer.toPlayer(context: SocketContext): Player {
+fun LavalinkPlayer.toPlayer(context: SocketContext, modifiers: List<AudioTrackJsonAppender>): Player {
     val connection = context.getMediaConnection(this).gatewayConnection
     val voiceServerInfo = context.koe.getConnection(guildId)?.voiceServerInfo
 
     return Player(
         guildId.toString(),
-        track?.toTrack(context.audioPlayerManager),
+        track?.toTrack(context.audioPlayerManager, modifiers),
         audioPlayer.volume,
         audioPlayer.isPaused,
         VoiceState(
@@ -70,6 +51,45 @@ fun LavalinkPlayer.toPlayer(context: SocketContext): Player {
             connection?.ping ?: -1
         ),
         filters.toFilters(),
+    )
+}
+
+fun AudioTrack.toTrack(audioPlayerManager: AudioPlayerManager, modifiers: List<AudioTrackJsonAppender>): Track {
+    val encoded = encodeTrack(audioPlayerManager, this)
+
+    return this.toTrack(encoded, modifiers)
+}
+
+fun AudioTrack.toTrack(encoded: String, modifiers: List<AudioTrackJsonAppender>): Track {
+    return Track(encoded, encoded, this.toInfo(modifiers))
+}
+
+fun AudioTrack.toInfo(modifiers: List<AudioTrackJsonAppender>): TrackInfo {
+    val pluginFields = mutableMapOf<String, JsonNode>()
+    modifiers.forEach { pluginFields.putAll(it.appendFields(this)) }
+
+    return TrackInfo(
+        this.identifier,
+        this.isSeekable,
+        this.info.author,
+        this.info.length,
+        this.info.isStream,
+        this.position,
+        this.info.title,
+        this.info.uri,
+        this.sourceManager.sourceName,
+        pluginFields
+    )
+}
+
+fun AudioPlaylist.toPlaylistInfo(modifiers: List<AudioPlaylistJsonAppender>): PlaylistInfo {
+    val pluginFields = mutableMapOf<String, JsonNode>()
+    modifiers.forEach { pluginFields.putAll(it.appendFields(this)) }
+
+    return PlaylistInfo(
+        this.name,
+        this.tracks.indexOf(this.selectedTrack),
+        pluginFields
     )
 }
 

@@ -26,6 +26,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
+import dev.arbjerg.lavalink.api.AudioPlaylistJsonAppender
+import dev.arbjerg.lavalink.api.AudioTrackJsonAppender
 import dev.arbjerg.lavalink.protocol.Track
 import dev.arbjerg.lavalink.protocol.decodeTrack
 import lavalink.server.util.toTrack
@@ -40,7 +42,9 @@ import javax.servlet.http.HttpServletRequest
 @RestController
 class AudioLoaderRestHandler(
     private val audioPlayerManager: AudioPlayerManager,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val trackModifiers: List<AudioTrackJsonAppender>,
+    private val playlistModifiers: List<AudioPlaylistJsonAppender>
 ) {
 
     companion object {
@@ -50,10 +54,10 @@ class AudioLoaderRestHandler(
     @GetMapping(value = ["/loadtracks", "/v3/loadtracks"])
     fun loadTracks(
         request: HttpServletRequest,
-        @RequestParam identifier: String?
+        @RequestParam identifier: String
     ): CompletionStage<ResponseEntity<JsonNode>> {
         log.info("Got request to load for identifier \"${identifier}\"")
-        return AudioLoader(audioPlayerManager).load(identifier).thenApply {
+        return AudioLoader(audioPlayerManager, trackModifiers, playlistModifiers).load(identifier).thenApply {
             val node: ObjectNode = objectMapper.valueToTree(it)
             if (request.servletPath.startsWith("/loadtracks") || request.servletPath.startsWith("/v3/loadtracks")) {
                 if (node.get("playlistInfo").isNull) {
@@ -75,7 +79,7 @@ class AudioLoaderRestHandler(
             HttpStatus.BAD_REQUEST,
             "No track to decode provided"
         )
-        return ResponseEntity.ok(decodeTrack(audioPlayerManager, trackToDecode).toTrack(trackToDecode))
+        return ResponseEntity.ok(decodeTrack(audioPlayerManager, trackToDecode).toTrack(trackToDecode, trackModifiers))
     }
 
     @PostMapping(value = ["/decodetracks", "/v3/decodetracks"])
@@ -84,7 +88,7 @@ class AudioLoaderRestHandler(
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "No tracks to decode provided")
         }
         return ResponseEntity.ok(encodedTracks.map {
-            decodeTrack(audioPlayerManager, it).toTrack(it)
+            decodeTrack(audioPlayerManager, it).toTrack(it, trackModifiers)
         })
     }
 

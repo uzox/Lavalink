@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture
 class PlayerRestHandler(
     private val socketServer: SocketServer,
     private val filterExtensions: List<AudioFilterExtension>,
-    private val trackModifiers: List<JsonPluginDataAppender>,
+    private val pluginDataAppenders: List<JsonPluginDataAppender>,
     serverConfig: ServerConfig,
 ) {
 
@@ -38,7 +38,7 @@ class PlayerRestHandler(
     private fun getPlayers(@PathVariable sessionId: String): ResponseEntity<Players> {
         val context = socketContext(socketServer, sessionId)
 
-        return ResponseEntity.ok(Players(context.players.values.map { it.toPlayer(context, trackModifiers) }))
+        return ResponseEntity.ok(Players(context.players.values.map { it.toPlayer(context, pluginDataAppenders) }))
     }
 
     @GetMapping(value = ["/v3/sessions/{sessionId}/players/{guildId}"])
@@ -46,7 +46,7 @@ class PlayerRestHandler(
         val context = socketContext(socketServer, sessionId)
         val player = existingPlayer(context, guildId)
 
-        return ResponseEntity.ok(player.toPlayer(context, trackModifiers))
+        return ResponseEntity.ok(player.toPlayer(context, pluginDataAppenders))
     }
 
     @PatchMapping(value = ["/v3/sessions/{sessionId}/players/{guildId}"])
@@ -120,7 +120,7 @@ class PlayerRestHandler(
 
             if (noReplace && player.track != null) {
                 log.info("Skipping play request because of noReplace")
-                return ResponseEntity.ok(player.toPlayer(context, trackModifiers))
+                return ResponseEntity.ok(player.toPlayer(context, pluginDataAppenders))
             }
             player.setPause(if (playerUpdate.paused.isPresent) playerUpdate.paused.value else false)
 
@@ -169,7 +169,7 @@ class PlayerRestHandler(
             } ?: player.stop()
         }
 
-        return ResponseEntity.ok(player.toPlayer(context, trackModifiers))
+        return ResponseEntity.ok(player.toPlayer(context, pluginDataAppenders))
     }
 
     @DeleteMapping("/v3/sessions/{sessionId}/players/{guildId}")

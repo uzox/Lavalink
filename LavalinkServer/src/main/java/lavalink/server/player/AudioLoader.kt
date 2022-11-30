@@ -44,7 +44,6 @@ class AudioLoader(
 
     companion object {
         private val log = LoggerFactory.getLogger(AudioLoader::class.java)
-        private val NO_MATCHES = LoadResult(ResultStatus.NO_MATCHES, emptyList(), null, null)
     }
 
     private val loadResult = CompletableFuture<LoadResult>()
@@ -60,30 +59,28 @@ class AudioLoader(
 
     override fun trackLoaded(audioTrack: AudioTrack) {
         log.info("Loaded track ${audioTrack.info.title}")
-
-        val tracks = listOf(audioTrack.toTrack(audioPlayerManager, trackModifiers))
-        loadResult.complete(LoadResult(ResultStatus.TRACK_LOADED, tracks, null))
+        val track = audioTrack.toTrack(audioPlayerManager, trackModifiers)
+        loadResult.complete(LoadResult.trackLoaded(track))
     }
 
     override fun playlistLoaded(audioPlaylist: AudioPlaylist) {
         log.info("Loaded playlist ${audioPlaylist.name}")
-
-        val status = if (audioPlaylist.isSearchResult) ResultStatus.SEARCH_RESULT else ResultStatus.PLAYLIST_LOADED
         val tracks = audioPlaylist.tracks.map { it.toTrack(audioPlayerManager, trackModifiers) }
-        val playlistInfo = if (audioPlaylist.isSearchResult) null else audioPlaylist.toPlaylistInfo(playlistModifiers)
-        loadResult.complete(LoadResult(status, tracks, playlistInfo))
+        if (audioPlaylist.isSearchResult) {
+            loadResult.complete(LoadResult.searchResult(tracks))
+            return
+        }
+        loadResult.complete(LoadResult.playlistLoaded(audioPlaylist.toPlaylistInfo(playlistModifiers), tracks))
     }
 
     override fun noMatches() {
         log.info("No matches found")
-
-        loadResult.complete(NO_MATCHES)
+        loadResult.complete(LoadResult.noMatches)
     }
 
     override fun loadFailed(e: FriendlyException) {
         log.error("Load failed", e)
-
-        loadResult.complete(LoadResult(e))
+        loadResult.complete(LoadResult.loadFailed(e))
     }
 
 }

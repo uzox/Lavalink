@@ -556,11 +556,12 @@ GET /v3/sessions/{sessionId}/players
 
 ##### Track
 
-| Field   | Type                             | Description                                                                          |
-|---------|----------------------------------|--------------------------------------------------------------------------------------|
-| encoded | string                           | The base64 encoded track data                                                        |
-| track   | string                           | The base64 encoded track data (DEPRECATED as of v3.7.0 and marked for removal in v4) |
-| info    | [Track Info](#track-info) object | Info about the track                                                                 |
+| Field      | Type                             | Description                                                                          |
+|------------|----------------------------------|--------------------------------------------------------------------------------------|
+| encoded    | string                           | The base64 encoded track data                                                        |
+| track      | string                           | The base64 encoded track data (DEPRECATED as of v3.7.0 and marked for removal in v4) |
+| info       | [Track Info](#track-info) object | Info about the track                                                                 |
+| pluginInfo | object                           | Additional track info from plugins                                                   |
 
 ##### Track Info
 
@@ -575,7 +576,6 @@ GET /v3/sessions/{sessionId}/players
 | title      | string  | The track title                    |
 | uri        | ?string | The track uri                      |
 | sourceName | string  | The track source name              |
-| ...        | ?       | Plugins may add additional fields  |
 
 ##### Voice State
 
@@ -1045,6 +1045,7 @@ Response:
 |--------------|----------------------------------------|-----------------------------------------------------------|----------------------------------------------------|
 | loadType     | [LoadResultType](#load-result-type)    | The type of the result                                    |                                                    |
 | playlistInfo | [Playlist Info](#playlist-info) object | Additional info if the the load type is `PLAYLIST_LOADED` | `PLAYLIST_LOADED`                                  |
+| pluginInfo   | object                                 | Additional playlist info from plugins                     | `PLAYLIST_LOADED`                                  |
 | tracks       | array of [Tracks](#track)              | All tracks which have been loaded                         | `TRACK_LOADED`, `PLAYLIST_LOADED`, `SEARCH_RESULT` |
 | exception?   | [Exception](#exception-object) object  | The [Exception](#exception-object) this load failed with  | `LOAD_FAILED`                                      |
 
@@ -1064,7 +1065,6 @@ Response:
 |----------------|--------|------------------------------------------------------------------|
 | name?          | string | The name of the loaded playlist                                  |
 | selectedTrack? | int    | The selected track in this Playlist (-1 if no track is selected) |
-| ...            | ?      | Plugins may add additional fields                                |
 
 <details>
 <summary>Track Loaded Example Payload</summary>

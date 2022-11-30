@@ -26,9 +26,10 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
-import dev.arbjerg.lavalink.api.JsonPluginDataAppender
+import dev.arbjerg.lavalink.api.AudioPluginInfoModifier
 import dev.arbjerg.lavalink.protocol.LoadResult
-import lavalink.server.util.toPlaylist
+import lavalink.server.util.toPlaylistInfo
+import lavalink.server.util.toPluginInfo
 import lavalink.server.util.toTrack
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
@@ -37,7 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class AudioLoader(
     private val audioPlayerManager: AudioPlayerManager,
-    private val pluginDataAppenders: List<JsonPluginDataAppender>
+    private val pluginInfoModifiers: List<AudioPluginInfoModifier>
 ) : AudioLoadResultHandler {
 
     companion object {
@@ -58,19 +59,25 @@ class AudioLoader(
     override fun trackLoaded(audioTrack: AudioTrack) {
         log.info("Loaded track ${audioTrack.info.title}")
 
-        val track = audioTrack.toTrack(audioPlayerManager, pluginDataAppenders)
+        val track = audioTrack.toTrack(audioPlayerManager, pluginInfoModifiers)
         loadResult.complete(LoadResult.trackLoaded(track))
     }
 
     override fun playlistLoaded(audioPlaylist: AudioPlaylist) {
         log.info("Loaded playlist ${audioPlaylist.name}")
 
-        val tracks = audioPlaylist.tracks.map { it.toTrack(audioPlayerManager, pluginDataAppenders) }
+        val tracks = audioPlaylist.tracks.map { it.toTrack(audioPlayerManager, pluginInfoModifiers) }
         if (audioPlaylist.isSearchResult) {
-            loadResult.complete(LoadResult.searchResultLoaded(tracks))
+            loadResult.complete(LoadResult.searchResult(tracks))
             return
         }
-        loadResult.complete(LoadResult.playlistLoaded(audioPlaylist.toPlaylist(pluginDataAppenders), tracks))
+        loadResult.complete(
+            LoadResult.playlistLoaded(
+                audioPlaylist.toPlaylistInfo(),
+                audioPlaylist.toPluginInfo(pluginInfoModifiers),
+                tracks
+            )
+        )
     }
 
     override fun noMatches() {

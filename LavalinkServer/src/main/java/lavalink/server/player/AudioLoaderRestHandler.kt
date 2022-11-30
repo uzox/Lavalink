@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
-import dev.arbjerg.lavalink.api.JsonPluginDataAppender
+import dev.arbjerg.lavalink.api.AudioPluginInfoModifier
 import dev.arbjerg.lavalink.protocol.Track
 import dev.arbjerg.lavalink.protocol.decodeTrack
 import lavalink.server.util.toTrack
@@ -42,7 +42,7 @@ import javax.servlet.http.HttpServletRequest
 class AudioLoaderRestHandler(
     private val audioPlayerManager: AudioPlayerManager,
     private val objectMapper: ObjectMapper,
-    private val pluginDataAppenders: List<JsonPluginDataAppender>
+    private val pluginInfoModifiers: List<AudioPluginInfoModifier>
 ) {
 
     companion object {
@@ -55,7 +55,7 @@ class AudioLoaderRestHandler(
         @RequestParam identifier: String
     ): CompletionStage<ResponseEntity<JsonNode>> {
         log.info("Got request to load for identifier \"${identifier}\"")
-        return AudioLoader(audioPlayerManager, pluginDataAppenders).load(identifier).thenApply {
+        return AudioLoader(audioPlayerManager, pluginInfoModifiers).load(identifier).thenApply {
             val node: ObjectNode = objectMapper.valueToTree(it)
             if (request.servletPath.startsWith("/loadtracks") || request.servletPath.startsWith("/v3/loadtracks")) {
                 if (node.get("playlistInfo").isNull) {
@@ -77,7 +77,7 @@ class AudioLoaderRestHandler(
             HttpStatus.BAD_REQUEST,
             "No track to decode provided"
         )
-        return ResponseEntity.ok(decodeTrack(audioPlayerManager, trackToDecode).toTrack(trackToDecode, pluginDataAppenders))
+        return ResponseEntity.ok(decodeTrack(audioPlayerManager, trackToDecode).toTrack(trackToDecode, pluginInfoModifiers))
     }
 
     @PostMapping(value = ["/decodetracks", "/v3/decodetracks"])
@@ -86,7 +86,7 @@ class AudioLoaderRestHandler(
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "No tracks to decode provided")
         }
         return ResponseEntity.ok(encodedTracks.map {
-            decodeTrack(audioPlayerManager, it).toTrack(it, pluginDataAppenders)
+            decodeTrack(audioPlayerManager, it).toTrack(it, pluginInfoModifiers)
         })
     }
 

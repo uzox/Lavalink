@@ -1,14 +1,12 @@
 package dev.arbjerg.lavalink.protocol
 
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 
 data class Track(
     val encoded: String,
     val track: String,
     val info: TrackInfo,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    val pluginData: Map<String, JsonNode> = mutableMapOf()
+    val pluginInfo: ObjectNode
 )
 
 data class TrackInfo(

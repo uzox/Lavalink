@@ -1,24 +1,26 @@
 package dev.arbjerg.lavalink.protocol
 
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 
 data class LoadResult(
     val loadType: ResultStatus,
     val tracks: List<Track>,
     val playlistInfo: PlaylistInfo?,
-    val playlist: Playlist?,
+    val pluginInfo: ObjectNode?,
     val exception: Exception?
 ) {
     companion object {
         fun trackLoaded(track: Track) = LoadResult(ResultStatus.TRACK_LOADED, listOf(track), null, null, null)
-        fun playlistLoaded(playlist: Playlist, tracks: List<Track>) = LoadResult(
+        fun playlistLoaded(playlistInfo: PlaylistInfo, pluginInfo: ObjectNode, tracks: List<Track>) = LoadResult(
             ResultStatus.PLAYLIST_LOADED,
             tracks,
-            PlaylistInfo(playlist.info.name, playlist.info.selectedTrack),
-            playlist,
+            playlistInfo,
+            pluginInfo,
             null
         )
-        fun searchResultLoaded(tracks: List<Track>) = LoadResult(ResultStatus.SEARCH_RESULT, tracks, null, null, null)
+
+        fun searchResult(tracks: List<Track>) = LoadResult(ResultStatus.SEARCH_RESULT, tracks, null, null, null)
         val noMatches = LoadResult(ResultStatus.NO_MATCHES, emptyList(), null, null, null)
         fun loadFailed(exception: FriendlyException) =
             LoadResult(ResultStatus.LOAD_FAILED, emptyList(), null, null, Exception.fromFriendlyException(exception))

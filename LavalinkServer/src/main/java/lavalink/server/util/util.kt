@@ -21,11 +21,12 @@
  */
 package lavalink.server.util
 
-import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.JsonNodeFactory
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
-import dev.arbjerg.lavalink.api.JsonPluginDataAppender
+import dev.arbjerg.lavalink.api.AudioPluginInfoModifier
 import dev.arbjerg.lavalink.protocol.*
 import lavalink.server.io.SocketContext
 import lavalink.server.io.SocketServer
@@ -33,13 +34,13 @@ import lavalink.server.player.LavalinkPlayer
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
-fun LavalinkPlayer.toPlayer(context: SocketContext, dataAppender: List<JsonPluginDataAppender>): Player {
+fun LavalinkPlayer.toPlayer(context: SocketContext, pluginInfoModifiers: List<AudioPluginInfoModifier>): Player {
     val connection = context.getMediaConnection(this).gatewayConnection
     val voiceServerInfo = context.koe.getConnection(guildId)?.voiceServerInfo
 
     return Player(
         guildId.toString(),
-        track?.toTrack(context.audioPlayerManager, dataAppender),
+        track?.toTrack(context.audioPlayerManager, pluginInfoModifiers),
         audioPlayer.volume,
         audioPlayer.isPaused,
         VoiceState(
@@ -53,15 +54,17 @@ fun LavalinkPlayer.toPlayer(context: SocketContext, dataAppender: List<JsonPlugi
     )
 }
 
-fun AudioTrack.toTrack(audioPlayerManager: AudioPlayerManager, dataAppender: List<JsonPluginDataAppender>): Track {
-    return this.toTrack(encodeTrack(audioPlayerManager, this), dataAppender)
+fun AudioTrack.toTrack(
+    audioPlayerManager: AudioPlayerManager,
+    pluginInfoModifiers: List<AudioPluginInfoModifier>
+): Track {
+    return this.toTrack(encodeTrack(audioPlayerManager, this), pluginInfoModifiers)
 }
 
-fun AudioTrack.toTrack(encoded: String, dataAppender: List<JsonPluginDataAppender>): Track {
-    val pluginData = mutableMapOf<String, JsonNode>()
-    dataAppender.forEach { pluginData.putAll(it.addTrackPluginData(this)) }
-
-    return Track(encoded, encoded, this.toInfo(), pluginData)
+fun AudioTrack.toTrack(encoded: String, pluginInfoModifiers: List<AudioPluginInfoModifier>): Track {
+    val pluginInfo = JsonNodeFactory.instance.objectNode()
+    pluginInfoModifiers.forEach { it.modifyAudioTrackPluginInfo(this, pluginInfo) }
+    return Track(encoded, encoded, this.toInfo(), pluginInfo)
 }
 
 fun AudioTrack.toInfo(): TrackInfo {
@@ -78,14 +81,14 @@ fun AudioTrack.toInfo(): TrackInfo {
     )
 }
 
-fun AudioPlaylist.toPlaylist(dataAppender: List<JsonPluginDataAppender>): Playlist {
-    val pluginData = mutableMapOf<String, JsonNode>()
-    dataAppender.forEach { pluginData.putAll(it.addPlaylistPluginData(this)) }
+fun AudioPlaylist.toPlaylistInfo(): PlaylistInfo {
+    return PlaylistInfo(this.name, this.tracks.indexOf(this.selectedTrack))
+}
 
-    return Playlist(
-        Playlist.Info(this.name, this.tracks.indexOf(this.selectedTrack)),
-        pluginData
-    )
+fun AudioPlaylist.toPluginInfo(pluginInfoModifiers: List<AudioPluginInfoModifier>): ObjectNode {
+    val pluginInfo = JsonNodeFactory.instance.objectNode()
+    pluginInfoModifiers.forEach { it.modifyAudioPlaylistPluginInfo(this, pluginInfo) }
+    return pluginInfo
 }
 
 fun getRootCause(throwable: Throwable?): Throwable {

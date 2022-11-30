@@ -6,7 +6,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.TrackMarker
 import dev.arbjerg.lavalink.api.AudioFilterExtension
-import dev.arbjerg.lavalink.api.AudioTrackJsonAppender
+import dev.arbjerg.lavalink.api.JsonPluginDataAppender
 import dev.arbjerg.lavalink.protocol.*
 import lavalink.server.config.ServerConfig
 import lavalink.server.io.SocketServer
@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture
 class PlayerRestHandler(
     private val socketServer: SocketServer,
     private val filterExtensions: List<AudioFilterExtension>,
-    private val trackModifiers: List<AudioTrackJsonAppender>,
+    private val trackModifiers: List<JsonPluginDataAppender>,
     serverConfig: ServerConfig,
 ) {
 

@@ -26,10 +26,9 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
-import dev.arbjerg.lavalink.api.AudioPlaylistJsonAppender
-import dev.arbjerg.lavalink.api.AudioTrackJsonAppender
-import dev.arbjerg.lavalink.protocol.*
-import lavalink.server.util.toPlaylistInfo
+import dev.arbjerg.lavalink.api.JsonPluginDataAppender
+import dev.arbjerg.lavalink.protocol.LoadResult
+import lavalink.server.util.toPlaylist
 import lavalink.server.util.toTrack
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
@@ -38,8 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class AudioLoader(
     private val audioPlayerManager: AudioPlayerManager,
-    private val trackModifiers: List<AudioTrackJsonAppender>,
-    private val playlistModifiers: List<AudioPlaylistJsonAppender>
+    private val pluginDataAppenders: List<JsonPluginDataAppender>
 ) : AudioLoadResultHandler {
 
     companion object {
@@ -59,18 +57,20 @@ class AudioLoader(
 
     override fun trackLoaded(audioTrack: AudioTrack) {
         log.info("Loaded track ${audioTrack.info.title}")
-        val track = audioTrack.toTrack(audioPlayerManager, trackModifiers)
+
+        val track = audioTrack.toTrack(audioPlayerManager, pluginDataAppenders)
         loadResult.complete(LoadResult.trackLoaded(track))
     }
 
     override fun playlistLoaded(audioPlaylist: AudioPlaylist) {
         log.info("Loaded playlist ${audioPlaylist.name}")
-        val tracks = audioPlaylist.tracks.map { it.toTrack(audioPlayerManager, trackModifiers) }
+
+        val tracks = audioPlaylist.tracks.map { it.toTrack(audioPlayerManager, pluginDataAppenders) }
         if (audioPlaylist.isSearchResult) {
             loadResult.complete(LoadResult.searchResultLoaded(tracks))
             return
         }
-        loadResult.complete(LoadResult.playlistLoaded(audioPlaylist.toPlaylistInfo(playlistModifiers), tracks))
+        loadResult.complete(LoadResult.playlistLoaded(audioPlaylist.toPlaylist(pluginDataAppenders), tracks))
     }
 
     override fun noMatches() {
@@ -80,6 +80,7 @@ class AudioLoader(
 
     override fun loadFailed(e: FriendlyException) {
         log.error("Load failed", e)
+
         loadResult.complete(LoadResult.loadFailed(e))
     }
 
